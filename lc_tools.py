@@ -5,8 +5,18 @@
 # Abhimat Gautam
 
 import numpy as np
+from scipy.special import erf
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as font_manager
+from matplotlib.ticker import MultipleLocator
 
-def lc_polyfit(mags, mag_errs, obs_times, sig_test=5.):
+from gc_photdata import align_dataset
+
+def lc_polyfit(
+        mags, mag_errs, obs_times,
+        sig_test=5.,
+        trial_degs=[1,2,3],
+    ):
     detected_filter = np.where(mags > 0.0)
     
     # Filter out to non-detected epochs
@@ -22,7 +32,6 @@ def lc_polyfit(mags, mag_errs, obs_times, sig_test=5.):
                 np.sum(obs_weights))
     
     # Calculate reduced chi squared for different order models
-    from scipy.special import erf
     sig_test_var_prob = erf(sig_test / np.sqrt(2.))
     
     ## 0th order
@@ -41,7 +50,7 @@ def lc_polyfit(mags, mag_errs, obs_times, sig_test=5.):
     highest_D_val_prob = sig_test_var_prob
     
     ## 1st and 2nd order
-    for trial_deg in [1, 2]:
+    for trial_deg in trial_degs:
         cur_num_params = trial_deg + 1
         cur_poly_coeffs = np.polyfit(obs_times_det, mags_det,
                                  trial_deg, w=(1./mag_errs_det))
