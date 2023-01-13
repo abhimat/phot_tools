@@ -122,31 +122,25 @@ def wilks_theorem_test(mags, mag_errs,
     return chi2_cdf
 
 def lc_polyfit_tester():
-    from gc_photdata import align_dataset
-    
     # Read in saved data
     ## Set up align_dataset object
-    align_data_location = '/g/ghez/abhimat/datasets/align_data/'
-    align_name = 'phot_19_04_Kp_kp'
-
+    align_data_location = '/g/ghez/abhimat/datasets/align_data_py3/'
+    align_name = 'phot_22_11_1_sin_Kp'
+    
     align_pickle_loc = align_data_location + 'alignPickle_' + align_name + '.pkl'
-
+    
     align_data = align_dataset.align_dataset(align_pickle_loc)
     
     ## Read in stored variables from align_dataset object
     epoch_dates = align_data.epoch_dates
     epoch_MJDs = align_data.epoch_MJDs
     star_names = align_data.star_names
-
+    
     star_mags = align_data.star_mags_neighCorr
     star_magErrors = align_data.star_magErrors_neighCorr
     star_magMeans = align_data.star_magMeans_neighCorr
     
     ## Tests
-    import matplotlib.pyplot as plt
-    import matplotlib.font_manager as font_manager
-    from matplotlib.ticker import MultipleLocator
-    
     ### Plot Nerdery
     plt.rc('font', family='serif')
     plt.rc('font', serif='Computer Modern Roman')
@@ -159,13 +153,19 @@ def lc_polyfit_tester():
     plt.rc('ytick', right = True)
     
     
-    for cur_star in ['S4-258', 'irs16C', 'irs16SW', 'S2-36']:
+    for cur_star in ['S4-258', 'irs16C', 'irs16CC', 'irs16SW', 'S2-36']:
         fig = plt.figure(figsize=(7,4))
         
         ## Perform fit
-        (mags_polyfit, model, poly_coeffs, dof, red_chiSq) = lc_polyfit(star_mags[cur_star],
-                                                                        star_magErrors[cur_star],
-                                                                        epoch_MJDs)
+        (mags_polyfit, model,
+         poly_coeffs, dof, red_chiSq) = lc_polyfit(
+            star_mags[cur_star],
+            star_magErrors[cur_star],
+            epoch_MJDs,
+            trial_degs=[1,2,3,4,5],
+        )
+        
+        poly_order = len(poly_coeffs) - 1
         
         detected_filter = np.where(star_mags[cur_star] > 0.0)
         mags_det = (star_mags[cur_star])[detected_filter]
@@ -186,7 +186,12 @@ def lc_polyfit_tester():
         
         ax1 = fig.add_subplot(2, 1, 1)
         ax1.errorbar(obs_times_det, mags_det, yerr=mag_errs_det, fmt='k.')
-        ax1.plot(obs_times_det, model, 'r-')
+        ax1.plot(
+            obs_times_det, model, 'r-',
+            label=f'{poly_order} Order Polyfit',
+        )
+        
+        ax1.legend()
         
         ax1.invert_yaxis()
         
@@ -205,7 +210,9 @@ def lc_polyfit_tester():
         
         ax2 = fig.add_subplot(2, 1, 2)
         ax2.errorbar(obs_times_det, mags_polyfit, yerr=mag_errs_det, fmt='k.')
-        ax2.plot(obs_times_det, model*0 + star_magMeans[cur_star], 'r-')
+        ax2.plot(
+            obs_times_det, model*0 + star_magMeans[cur_star], 'r-',
+        )
         
         ax2.invert_yaxis()
         
@@ -219,11 +226,9 @@ def lc_polyfit_tester():
         ax2.yaxis.set_major_locator(y_majorLocator)
         ax2.yaxis.set_minor_locator(y_minorLocator)
         
-        ax2.set_ylabel(r"m_{K'}")
+        ax2.set_ylabel(r"$m_{K'}$")
         ax2.set_xlabel('Observation Time')
         
         fig.tight_layout()
         fig.savefig('./{0}.pdf'.format(cur_star))
         plt.close(fig)
-        
-    
